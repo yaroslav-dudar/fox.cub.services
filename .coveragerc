@@ -1,0 +1,9 @@
+[run]
+omit = tests/*
+       */venv/*
+       .vscode/*
+
+[report]
+omit = tests/*
+       */venv/*
+       .vscode/*

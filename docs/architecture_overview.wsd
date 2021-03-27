@@ -1,0 +1,9 @@
+@startuml
+participant "Data Parser" as DP
+queue "Event Bus" as EB
+participant "Concrete Handler" as HAND
+participant "Repository" as REP
+DP -> EB : Publish event
+HAND -> EB : Subscribe
+HAND -> REP: Persist data
+@enduml
