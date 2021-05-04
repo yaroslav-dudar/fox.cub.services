@@ -8,7 +8,7 @@ from bson.objectid import ObjectId
 from .base import BaseModel
 from domain import FootballMatch, BaseMatch, FootballSeasonStats, Venue
 
-class MatchRepository(metaclass=BaseModel):
+class MatchMongoRepository(metaclass=BaseModel):
     collection = "matches"
 
     @classmethod

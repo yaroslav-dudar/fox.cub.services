@@ -1,11 +1,11 @@
 """www.betstudy.com scaraper."""
 import logging
+from datetime  import datetime
 
 import scrapy
 
 from domain import FootballMatch, Venue
-from repository import MatchRepository
-from event_bus import MemoryEventBus
+
 
 class BetStadyDataset:
 
@@ -46,7 +46,7 @@ class BetStadySpider(scrapy.Spider):
 
     epl = BetStadyDataset("england", "premier-league",
                           ["{0}-{1}".format(year, year+1)
-                          for year in range(2005, 2021)])
+                          for year in range(2020, 2021)])
 
     efl_championship = BetStadyDataset("england", "championship",
                                        ["{0}-{1}".format(year, year+1)
@@ -209,13 +209,13 @@ class BetStadySpider(scrapy.Spider):
                                 for year in range(2005, 2020)])
 
     dataset: BetStadyDataset = epl
-    proxy = "139.59.52.232:3128"
+    proxy = "37.120.161.249:3128"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.bus = MemoryEventBus()
-        self.bus.register(FootballMatch, MatchRepository.insert_many)
+    def __init__(self, event_bus, items_buffer):
+        super().__init__()
         self.event_name = f'{self.dataset.region}-{self.dataset.division}'
+        self.event_bus = event_bus
+        self.items_buffer = items_buffer
 
     def start_requests(self):
         for url in self.dataset:
@@ -230,7 +230,6 @@ class BetStadySpider(scrapy.Spider):
     def parse_table(self, response):
         games = response.css('table.schedule-table tr')
         season = self.get_season_year(response.request.url)
-        matches = []
         for game in games:
             fields = game.css('td')
             if len(fields) < 4:
@@ -238,29 +237,28 @@ class BetStadySpider(scrapy.Spider):
 
             match = FootballMatch()
             try:
-                match.season = int(season)
-                match.event = self.event_name
+                match.season_id = int(season)
+                match.event_id = 1#self.event_name
                 match.group = -1
                 match.team1_ht_score, match.team2_ht_score = None, None
                 match.team1_id, match.team2_id = None, None
                 match.venue = Venue.TEAM1.value
 
-                match.date = fields[0].css('::text').extract_first().\
+                date = fields[0].css('::text').extract_first().\
                                         replace(".", "/")
-                match.team1_name = fields[1].css('a::text').extract_first()
-                match.team2_name = fields[3].css('a::text').extract_first()
+                match.date = datetime.strptime(date, '%d/%m/%Y')
+                match.team1_name = fields[1].css('a::text').extract_first().strip()
+                match.team2_name = fields[3].css('a::text').extract_first().strip()
 
                 scoreline = fields[2].css('strong::text').extract_first()
                 scoreline = (scoreline.replace(' ', '').split("-")
                             if scoreline else (None, None))
                 match.team1_ft_score, match.team2_ft_score =\
                     int(scoreline[0]), int(scoreline[1])
-                matches.append(match)
+
+                self.items_buffer.append(match)
             except Exception as err:
                 logging.warning("Couldn't parse game: %s with exception: %s",
                                 game, str(err))
 
             yield match
-
-        logging.info("Saving [%d] records to Database ...", len(matches))
-        self.bus.publish_batch(FootballMatch, matches)

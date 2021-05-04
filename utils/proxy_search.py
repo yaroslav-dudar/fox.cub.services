@@ -9,7 +9,7 @@ async def testProxy(proxy_addr):
     async with httpx.AsyncClient(proxies=proxies) as client:
         try:
             r = await client.request("GET", "https://google.com")
-        except httpx.ProxyError as e:
+        except Exception as e:
             pass
         else:
             print(proxy_addr)

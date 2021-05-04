@@ -32,14 +32,14 @@ class BaseMatch:
     team1_ft_score: int
     team2_ft_score: int
 
-    season: int
     venue: Venue
 
     team1_id: str
     team2_id: str
 
     match_type: MatchType
-    event: str
+    event_id: int
+    season_id: int
 
 
 @dataclass
