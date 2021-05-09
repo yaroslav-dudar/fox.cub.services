@@ -15,12 +15,15 @@ class Venue(Enum):
 
 
 @dataclass
-class FootballSeasonStats:
-    ppg: float # points per game
-    gfpg: float # goals for per game
-    gapg: float # goals agains per game
-    xfgpg: float # xg for per game
-    xgapg: float # xg agains per game
+class Season:
+    id: int
+    name: str
+
+
+@dataclass
+class Event:
+    id: int
+    name: str
 
 
 @dataclass

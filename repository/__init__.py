@@ -1,2 +1,3 @@
-from .match_mongo import MatchMongoRepository
-from .match_pg import MatchPgRepository, PgClient
+from .mongo_repo import MatchMongoRepository
+from .pg_repo import (
+    MatchPgRepository, SeasonPgRepository, EventPgRepository, PgClient)

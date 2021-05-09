@@ -6,7 +6,7 @@ import pymongo.errors
 from bson.objectid import ObjectId
 
 from .base import BaseModel
-from domain import FootballMatch, BaseMatch, FootballSeasonStats, Venue
+from domain import FootballMatch, BaseMatch, Venue
 
 class MatchMongoRepository(metaclass=BaseModel):
     collection = "matches"
@@ -71,7 +71,7 @@ class MatchMongoRepository(metaclass=BaseModel):
     @classmethod
     def get_seasons_stats(
         cls, seasons: list[int], event: str, venue: Venue
-    )-> dict[str, FootballSeasonStats]:
+    )-> dict[str, object]:
         """Performs aggregation to calculate season statistics per team."""
         match = {"$match": {"$and": [{"event": {"$eq": event} }, {"season": {"$in": seasons}}]}}
         group = cls._get_seasons_stats_group(venue)

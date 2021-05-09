@@ -2,21 +2,22 @@
 """Pymongo base wrapper"""
 
 import atexit
+import asyncio
 
 import pymongo
-#from bson.objectid import ObjectId
-#from bson.codec_options import TypeRegistry, CodecOptions
+import asyncpg
 
 from config import Config
 
 
 class Connection:
+    SUPPORT_CONNECTIONS = (pymongo.MongoClient, asyncpg.pool.Pool)
     def __set_name__(self, owner, name):
         self.name = name
 
     def __set__(self, instance, value):
-        if not isinstance(value, pymongo.MongoClient):
-            raise ValueError("Should be MongoDB instance only")
+        if not isinstance(value, self.SUPPORT_CONNECTIONS):
+            raise ValueError(f"Connection: {value.__class__} is not supported.")
 
         instance.__dict__[self.name] = value
 
@@ -90,3 +91,42 @@ class BaseModel(type):
             if not stats.get('capped'):
                 raise RuntimeError('{} should be capped collection'.\
                                    format(stats['ns'])) from invalid_collection
+
+
+class PgClient:
+    """ Global PostgreSQL connector """
+    conn_pool = Connection()
+    db = None
+    _obj = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._obj:
+            # prevent to create multiple db connections
+            return cls._obj
+
+        cls._obj = super(PgClient, cls).__new__(cls)
+        return cls._obj
+
+    def __init__(self, db_config: dict, loop: asyncio.AbstractEventLoop):
+        self.db_config = db_config
+        self.loop = loop
+        atexit.register(self.shutdown)
+
+    async def init_connection(self):
+        if self.conn_pool:
+            return self.conn_pool
+
+        self.conn_pool = await asyncpg.create_pool(
+            user=self.db_config['user'],
+            password=self.db_config['password'],
+            database=self.db_config['database'],
+            host=self.db_config['host'],
+            port=self.db_config['port'],
+            max_size=10, max_inactive_connection_lifetime=100,
+            loop=self.loop)
+
+        return self.conn_pool
+
+    def shutdown(self):
+        """Cleanup DB resources before exit."""
+        self.loop.run_until_complete(self.conn_pool.close())

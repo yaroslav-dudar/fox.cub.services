@@ -1,11 +1,12 @@
 """www.betstudy.com scaraper."""
+import asyncio
 import logging
 from datetime  import datetime
 
 import scrapy
 
 from domain import FootballMatch, Venue
-
+import repository
 
 class BetStadyDataset:
 
@@ -34,6 +35,15 @@ class BetStadyDataset:
                                        self.seasons[self.current])
 
 
+class MatchPipeline:
+    """Pipeline that finalize item with internal data."""
+    async def process_item(self, item: FootballMatch, spider: 'BetStadySpider'):
+        season = await spider.season_repo.insert(item.season_id)
+        event = await spider.event_repo.insert(item.event_id)
+        item.season_id, item.event_id = season.get('id'), event.get('id')
+        return item
+
+
 class BetStadySpider(scrapy.Spider):
     name = 'betstady'
 
@@ -41,7 +51,11 @@ class BetStadySpider(scrapy.Spider):
         'DOWNLOAD_DELAY': 3,
         'RETRY_TIMES': 5,
         'CONCURRENT_REQUESTS': 1,
-        'LOG_LEVEL': 'INFO'
+        'LOG_LEVEL': 'INFO',
+        'TWISTED_REACTOR': 'twisted.internet.asyncioreactor.AsyncioSelectorReactor',
+        'ITEM_PIPELINES': {
+            MatchPipeline: 300,
+        }
     }
 
     epl = BetStadyDataset("england", "premier-league",
@@ -209,13 +223,14 @@ class BetStadySpider(scrapy.Spider):
                                 for year in range(2005, 2020)])
 
     dataset: BetStadyDataset = epl
-    proxy = "37.120.161.249:3128"
+    proxy = "144.91.95.126:3128"
 
-    def __init__(self, event_bus, items_buffer):
+    def __init__(self, items_buffer: list, pg_client: repository.PgClient):
         super().__init__()
         self.event_name = f'{self.dataset.region}-{self.dataset.division}'
-        self.event_bus = event_bus
         self.items_buffer = items_buffer
+        self.season_repo = repository.SeasonPgRepository(pg_client)
+        self.event_repo = repository.EventPgRepository(pg_client)
 
     def start_requests(self):
         for url in self.dataset:
@@ -237,8 +252,8 @@ class BetStadySpider(scrapy.Spider):
 
             match = FootballMatch()
             try:
-                match.season_id = int(season)
-                match.event_id = 1#self.event_name
+                match.season_id = season
+                match.event_id = self.event_name
                 match.group = -1
                 match.team1_ht_score, match.team2_ht_score = None, None
                 match.team1_id, match.team2_id = None, None

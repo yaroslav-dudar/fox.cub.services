@@ -22,6 +22,7 @@ $$;
 GRANT ALL PRIVILEGES ON DATABASE fox_cub TO fox_cub_root;
 
 CREATE TABLE IF NOT EXISTS game (
+    id BIGSERIAL,
     home_team CHAR(64),
     away_team CHAR(64),
 
@@ -42,3 +43,14 @@ CREATE TABLE IF NOT EXISTS game (
     away_team_corners INT NULL
 
 ) USING columnar;
+
+
+CREATE TABLE IF NOT EXISTS "event" (
+    id BIGSERIAL PRIMARY KEY,
+    name CHAR(64) UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS season (
+    id BIGSERIAL PRIMARY KEY,
+    name CHAR(64) UNIQUE
+);

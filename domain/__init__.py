@@ -1,1 +1,1 @@
-from .model import FootballMatch, Venue, BaseMatch, FootballSeasonStats
+from .model import FootballMatch, Venue, BaseMatch, Event, Season
