@@ -51,6 +51,9 @@ class FootballMatch(BaseMatch):
     team1_ht_score: int
     team2_ht_score: int
 
+    team1_points: int
+    team2_points: int
+
     team1_goals_time: list = None
     team2_goals_time: list = None
 

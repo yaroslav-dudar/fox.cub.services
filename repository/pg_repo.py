@@ -18,14 +18,16 @@ class MatchPgRepository:
 
         input = ((m.team1_name, m.team2_name, m.date,
                   m.event_id, m.season_id, m.team1_ft_score,
-                  m.team2_ft_score) for m in matches)
+                  m.team2_ft_score, m.team1_points, m.team2_points)
+                  for m in matches)
 
         async with self.client.conn_pool.acquire() as con:
             return await con.executemany('''
                 INSERT INTO game (
                     home_team, away_team, date, event_id, season_id,
-                    home_team_score, away_team_score
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    home_team_score, away_team_score,
+                    home_team_points, away_team_points
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING
             ''', input)
 
     async def get_by_event(self, event_id: int):

@@ -21,7 +21,36 @@ $$;
 
 GRANT ALL PRIVILEGES ON DATABASE fox_cub TO fox_cub_root;
 
+
 CREATE TABLE IF NOT EXISTS game (
+    id BIGSERIAL PRIMARY KEY,
+    home_team CHAR(64),
+    away_team CHAR(64),
+
+    event_id BIGINT,
+    season_id BIGINT,
+    date DATE,
+
+    home_team_xg FLOAT NULL,
+    away_team_xg FLOAT NULL,
+
+    home_team_score INT CHECK (home_team_score >= 0),
+    away_team_score INT CHECK (away_team_score >= 0),
+
+    home_team_shots INT NULL,
+    away_team_shots INT NULL,
+
+    home_team_corners INT NULL,
+    away_team_corners INT NULL,
+
+    home_team_points INT CHECK (home_team_points IN (0,1,3)),
+    away_team_points INT CHECK (away_team_points IN (0,1,3)),
+
+    UNIQUE (home_team, away_team, date)
+);
+
+
+CREATE TABLE IF NOT EXISTS game_columnar (
     id BIGSERIAL,
     home_team CHAR(64),
     away_team CHAR(64),
@@ -40,7 +69,10 @@ CREATE TABLE IF NOT EXISTS game (
     away_team_shots INT NULL,
 
     home_team_corners INT NULL,
-    away_team_corners INT NULL
+    away_team_corners INT NULL,
+
+    home_team_point INT,
+    away_team_point INT
 
 ) USING columnar;
 

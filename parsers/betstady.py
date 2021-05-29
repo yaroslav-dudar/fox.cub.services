@@ -1,5 +1,4 @@
 """www.betstudy.com scaraper."""
-import asyncio
 import logging
 from datetime  import datetime
 
@@ -7,32 +6,7 @@ import scrapy
 
 from domain import FootballMatch, Venue
 import repository
-
-class BetStadyDataset:
-
-    url_pattern = "https://www.betstudy.com/soccer-stats/c/{0}/{1}/d/results/{2}/"
-
-    def __init__(self, region: str, division: str, seasons: list):
-        self.current = 0
-        self.region = region
-        self.division = division
-        self.seasons = seasons
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.current < len(self.seasons):
-            url = self.get_url()
-            self.current += 1
-            return url
-
-        raise StopIteration
-
-    def get_url(self):
-        return self.url_pattern.format(self.region,
-                                       self.division,
-                                       self.seasons[self.current])
+import parsers.betstady_datasets as betstady_datasets
 
 
 class MatchPipeline:
@@ -58,179 +32,21 @@ class BetStadySpider(scrapy.Spider):
         }
     }
 
-    epl = BetStadyDataset("england", "premier-league",
-                          ["{0}-{1}".format(year, year+1)
-                          for year in range(2020, 2021)])
+    dataset: betstady_datasets.BetStadyDataset = betstady_datasets.epl
+    proxy = "1.0.213.174:8080"
 
-    efl_championship = BetStadyDataset("england", "championship",
-                                       ["{0}-{1}".format(year, year+1)
-                                       for year in range(2005, 2021)])
-
-    belgium_b = BetStadyDataset("belgium", "second-division",
-                                ["{0}-{1}".format(year, year+1)
-                                for year in range(2005, 2019)])
-
-
-    a_league = BetStadyDataset("australia", "a-league",
-                               ["{0}-{1}".format(year, year+1)
-                               for year in range(2005, 2019)])
-
-
-    poland_1liga = BetStadyDataset("poland", "i-liga",
-                                  ["{0}-{1}".format(year, year+1)
-                                  for year in range(2005, 2019)])
-
-
-    ekstraklasa = BetStadyDataset("poland", "ekstraklasa",
-                                  ["{0}-{1}".format(year, year+1)
-                                  for year in range(2005, 2019)])
-
-    ukr_premier_league = BetStadyDataset("ukraine", "premier-league",
-                                         ["{0}-{1}".format(year, year+1)
-                                         for year in range(2005, 2020)])
-
-    segunda = BetStadyDataset("spain", "segunda-division",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2005, 2019)])
-
-    a_bundesliga = BetStadyDataset("austria", "bundesliga",
-                                   ["{0}-{1}".format(year, year+1)
-                                   for year in range(2005, 2019)])
-
-    au_1liga =BetStadyDataset("austria", "1.-liga",
-                                   ["{0}-{1}".format(year, year+1)
-                                   for year in range(2005, 2019)])
-
-
-    den_1div = BetStadyDataset("denmark", "1st-division",
-                               ["{0}-{1}".format(year, year+1)
-                               for year in range(2005, 2019)])
-
-    eerste_div = BetStadyDataset("netherlands", "eerste-divisie",
-                                 ["{0}-{1}".format(year, year+1)
-                                 for year in range(2005, 2019)])
-
-    liganos = BetStadyDataset("portugal", "primeira-liga",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2005, 2019)])
-
-    ger_3liga = BetStadyDataset("germany", "3.-liga",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2005, 2019)])
-
-    j1_league = BetStadyDataset("japan", "j1-league",
-                                ["{0}".format(year)
-                                for year in range(2005, 2019)])
-
-    j2_league = BetStadyDataset("japan", "j2-league",
-                                ["{0}".format(year)
-                                for year in range(2005, 2019)])
-
-    allsvenskan = BetStadyDataset("sweden", "allsvenskan",
-                                  ["{0}".format(year)
-                                  for year in range(2005, 2019)])
-
-    sc_championship = BetStadyDataset("scotland", "championship",
-                                      ["{0}-{1}".format(year, year+1)
-                                      for year in range(2005, 2020)])
-
-    sc_premiership = BetStadyDataset("scotland", "premiership",
-                                     ["{0}-{1}".format(year, year+1)
-                                     for year in range(2005, 2020)])
-
-    croatia_hnl = BetStadyDataset("croatia", "1.-hnl",
-                                  ["{0}-{1}".format(year, year+1)
-                                  for year in range(2005, 2019)])
-
-    copa_libertadores = BetStadyDataset("south-america", "copa-libertadores",
-                                        ["{0}".format(year)
-                                        for year in range(2006, 2019)])
-
-    rpl = BetStadyDataset("russia", "premier-league",
-                          ["{0}-{1}".format(year, year+1)
-                          for year in range(2011, 2020)])
-
-    fnl = BetStadyDataset("russia", "fnl",
-                          ["2018-2019","2017-2018","2016-2017",
-                          "2010","2009", "2008", "2007", "2006", "2005"])
-
-    czech_liga = BetStadyDataset("czech-republic", "czech-liga",
-                          ["{0}-{1}".format(year, year+1)
-                          for year in range(2005, 2019)])
-
-    colombia_a = BetStadyDataset("colombia", "primera-a",
-                                 ["{0}".format(year)
-                                 for year in range(2005, 2019)])
-
-    liga_mx = BetStadyDataset("mexico", "liga-mx",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2005, 2019)])
-
-    arg_primera = BetStadyDataset("argentina", "primera-division",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2016, 2020)])
-
-    chile_primera = BetStadyDataset("chile", "primera-division",
-                                    ["2019","2018","2016-2017",
-                                    "2012","2011"])
-
-    serbia_super_liga = BetStadyDataset("serbia", "super-liga",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2006, 2019)])
-
-    primera_b_national = BetStadyDataset("argentina", "prim-b-nacional",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2005, 2019)])
-
-    br_serie_b = BetStadyDataset("brazil", "serie-b",
-                              ["{0}".format(year)
-                              for year in range(2005, 2019)])
-
-    br_serie_a = BetStadyDataset("brazil", "serie-a",
-                              ["{0}".format(year)
-                              for year in range(2005, 2019)])
-
-    bahrain_pl = BetStadyDataset("bahrain", "premier-league",
-                              ["{0}-{1}".format(year, year+1)
-                              for year in range(2005, 2019)])
-
-    bl_pl = BetStadyDataset("belarus", "premier-league",
-                             ["{0}".format(year)
-                             for year in range(2005, 2019)])
-
-    k_league = BetStadyDataset("korea-republic", "k-league-classic",
-                             ["{0}".format(year)
-                             for year in range(2005, 2019)])
-
-    k_league2 = BetStadyDataset("korea-republic", "k-league-challenge",
-                                ["{0}".format(year)
-                                for year in range(2008, 2019)])
-
-    costa_rica_primera = BetStadyDataset("costa-rica", "primera-division",
-                                         ["{0}-{1}".format(year, year+1)
-                                         for year in range(2005, 2019)])
-
-    nb_1_liga = BetStadyDataset("hungary", "nb-i",
-                                ["{0}-{1}".format(year, year+1)
-                                for year in range(2005, 2019)])
-
-    fr_ligue1 = BetStadyDataset("france", "ligue-1",
-                                ["{0}-{1}".format(year, year+1)
-                                for year in range(2005, 2020)])
-
-    dfb_pokal = BetStadyDataset("germany", "dfb-pokal",
-                                ["{0}-{1}".format(year, year+1)
-                                for year in range(2005, 2020)])
-
-    dataset: BetStadyDataset = epl
-    proxy = "144.91.95.126:3128"
-
-    def __init__(self, items_buffer: list, pg_client: repository.PgClient):
+    def __init__(self, items_buffer: list,
+                 pg_client: repository.PgClient,
+                 dataset: betstady_datasets.BetStadyDataset = None):
         super().__init__()
+        if dataset:
+            self.dataset = dataset
+
         self.event_name = f'{self.dataset.region}-{self.dataset.division}'
         self.items_buffer = items_buffer
         self.season_repo = repository.SeasonPgRepository(pg_client)
         self.event_repo = repository.EventPgRepository(pg_client)
+
 
     def start_requests(self):
         for url in self.dataset:
@@ -241,6 +57,17 @@ class BetStadySpider(scrapy.Spider):
     def get_season_year(self, url):
         season = url.rsplit('/', 2)[-2]
         return season.split('-')[0]
+
+
+    def get_teams_points(self, team1_ft_score: int,
+                         team2_ft_score: int) -> tuple[int, int]:
+        if team1_ft_score == team2_ft_score:
+            return (1, 1)
+        elif team1_ft_score > team2_ft_score:
+            return (3, 0)
+        else:
+            return (0, 3)
+
 
     def parse_table(self, response):
         games = response.css('table.schedule-table tr')
@@ -270,6 +97,10 @@ class BetStadySpider(scrapy.Spider):
                             if scoreline else (None, None))
                 match.team1_ft_score, match.team2_ft_score =\
                     int(scoreline[0]), int(scoreline[1])
+
+                match.team1_points, match.team2_points =\
+                     self.get_teams_points(match.team1_ft_score,
+                                           match.team2_ft_score)
 
                 self.items_buffer.append(match)
             except Exception as err:

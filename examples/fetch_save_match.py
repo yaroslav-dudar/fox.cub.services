@@ -1,4 +1,3 @@
-from pprint import pprint
 import asyncio
 
 from twisted.internet import asyncioreactor
@@ -6,6 +5,7 @@ from scrapy.crawler import CrawlerProcess
 
 from config import Config
 from parsers.betstady import BetStadySpider
+import  parsers.betstady_datasets as betstady_datasets
 import repository
 
 
@@ -20,21 +20,34 @@ async def init_task():
 
 async def finalyze_task(records, match_repo):
     await match_repo.insert_many(records)
-    #matches = await match_repo.get_by_event(1)
-    pprint(records)
+    print(f"Seccessfully saved: {len(records)} records")
 
 
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     asyncioreactor.install(loop)
+
     pg_client = loop.run_until_complete(init_task())
 
     match_repo = repository.MatchPgRepository(pg_client)
-    items_buffer = []
-    process = CrawlerProcess()
-    process.crawl(BetStadySpider,
-                  pg_client=pg_client,
-                  items_buffer=items_buffer)
-    process.start()
 
+    datasets = [
+        betstady_datasets.epl,
+        betstady_datasets.bundesliga,
+        betstady_datasets.j1_league,
+        betstady_datasets.a_league,
+        betstady_datasets.efl_championship,
+        betstady_datasets.mls
+    ]
+
+    process = CrawlerProcess()
+    items_buffer = []
+
+    for d in datasets:
+        process.crawl(BetStadySpider,
+                      pg_client=pg_client,
+                      items_buffer=items_buffer,
+                      dataset=d)
+
+    process.start()
     loop.run_until_complete(finalyze_task(items_buffer, match_repo))
