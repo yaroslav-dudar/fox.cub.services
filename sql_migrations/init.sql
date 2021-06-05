@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS game_columnar (
     home_team_corners INT NULL,
     away_team_corners INT NULL,
 
-    home_team_point INT,
-    away_team_point INT
+    home_team_points INT,
+    away_team_points INT
 
 ) USING columnar;
 

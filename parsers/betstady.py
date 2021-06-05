@@ -1,8 +1,10 @@
 """www.betstudy.com scaraper."""
+from dataclasses import field
 import logging
 from datetime  import datetime
 
 import scrapy
+import scrapy.selector
 
 from domain import FootballMatch, Venue
 import repository
@@ -54,7 +56,7 @@ class BetStadySpider(scrapy.Spider):
                                  callback=self.parse_table,
                                  meta={'proxy': self.proxy})
 
-    def get_season_year(self, url):
+    def get_season_year(self, url: str) -> str:
         season = url.rsplit('/', 2)[-2]
         return season.split('-')[0]
 
@@ -68,6 +70,14 @@ class BetStadySpider(scrapy.Spider):
         else:
             return (0, 3)
 
+
+    def get_teams_ft_score(
+        self, selector: scrapy.selector.Selector
+    ) -> tuple[int, int]:
+        scoreline = selector.css('strong::text').extract_first()
+        scoreline = (scoreline.replace(' ', '').split("-")
+                     if scoreline else (None, None))
+        return int(scoreline[0]), int(scoreline[1])
 
     def parse_table(self, response):
         games = response.css('table.schedule-table tr')
@@ -92,12 +102,7 @@ class BetStadySpider(scrapy.Spider):
                 match.team1_name = fields[1].css('a::text').extract_first().strip()
                 match.team2_name = fields[3].css('a::text').extract_first().strip()
 
-                scoreline = fields[2].css('strong::text').extract_first()
-                scoreline = (scoreline.replace(' ', '').split("-")
-                            if scoreline else (None, None))
-                match.team1_ft_score, match.team2_ft_score =\
-                    int(scoreline[0]), int(scoreline[1])
-
+                match.team1_ft_score, match.team2_ft_score = self.get_teams_ft_score(fields[2])
                 match.team1_points, match.team2_points =\
                      self.get_teams_points(match.team1_ft_score,
                                            match.team2_ft_score)
