@@ -7,7 +7,8 @@ Small and self contained services associated to fox.cub stack
 - [Citus Database](https://www.citusdata.com/)
 
 
-## Run fetch_save_match
+## Examples usage:
 
 `PYTHONPATH=./ PYTHONASYNCIODEBUG=1 python examples/fetch_save_match.py`
 
+`PYTHONPATH=./ PYTHONASYNCIODEBUG=1 python examples/pg_repo_cli.py`

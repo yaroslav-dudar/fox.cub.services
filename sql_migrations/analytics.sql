@@ -1,3 +1,4 @@
+
 select team, avg, name as season_name from
 (
     select team, season_id, avg(points) from
@@ -12,4 +13,3 @@ select team, avg, name as season_name from
     group by home_team, season_id) as q1
     group by team, season_id) as q2
 inner join season on q2.season_id = season.id;
-

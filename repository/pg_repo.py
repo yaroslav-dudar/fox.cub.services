@@ -45,23 +45,40 @@ class MatchPgRepository:
     ) -> list[asyncpg.Record]:
         async with self.client.conn_pool.acquire() as con:
             return await con.fetch('''
-                select team, points from
-                (
-                    select team, avg(points) as points from
-                    (select away_team as team, season_id, avg(away_team_points) as points
-                    from game where event_id = any($3::int[])
-                    and season_id = any($4::int[])
-                    group by away_team, season_id
-
-                    union
-
-                    select home_team as team, season_id, avg(home_team_points) as points
-                    from game where event_id = any($3::int[])
-                    and season_id = any($4::int[])
-                    group by home_team, season_id) as q1
-                    group by team) as q2
-                where points <= $2 and points >= $1;
+                SELECT team, points_per_game from season_table($3, $4)
+                where points_per_game <= $2 and points_per_game >= $1;
             ''', min_points, max_points, event_ids, season_ids)
+
+
+    async def get_by_score(
+        self, event_ids: list[int], season_ids: list[int],
+        min_score: float, max_score: float,
+        min_conceded: float, max_conceded: float
+    ) -> list[asyncpg.Record]:
+        async with self.client.conn_pool.acquire() as con:
+            return await con.fetch('''
+                SELECT team, score_per_game, conceded_per_game from season_table($1, $2)
+                where (score_per_game <= $4 AND score_per_game >= $3)
+                    AND (conceded_per_game <= $6 AND conceded_per_game >= $5);
+            ''', event_ids, season_ids, min_score, max_score, min_conceded, max_conceded)
+
+
+    async def get_by_league_pos(
+        self, min_pos: float, max_pos: float,
+        event_ids: list[int], season_ids: list[int],
+    ) -> list[asyncpg.Record]:
+        async with self.client.conn_pool.acquire() as con:
+            return await con.fetch('''
+                SELECT * FROM
+                (SELECT team, points,
+                    ROW_NUMBER () OVER (PARTITION BY season_id
+                                        ORDER BY points DESC)
+                    AS league_position FROM season_table($1, $2)
+                ) as q
+                WHERE league_position >= $3 AND league_position <= $4;
+
+            ''',event_ids, season_ids, min_pos, max_pos)
+
 
     async def get_stats(self,
                         event_ids: list[int],
@@ -69,16 +86,56 @@ class MatchPgRepository:
                         game_ids: Optional[list[int]] = None):
          async with self.client.conn_pool.acquire() as con:
             return await con.fetch('''
-                select avg(away_team_points) as away_points,
-                       avg(home_team_points) as home_points,
-                       avg(away_team_score) as away_goals,
-                       avg(home_team_score) as home_goals,
-                       avg(home_team_score) + avg(away_team_score) as goals_per_game,
-                       count(id) FILTER (WHERE away_team_score > home_team_score) / cast(count(*) as decimal) as away_win,
-                       count(id) FILTER (WHERE away_team_score < home_team_score) / cast(count(*) as decimal) as home_win,
-                       count(id) FILTER (WHERE away_team_score = home_team_score) / cast(count(*) as decimal) as draw
-                from game where event_id = any($1::int[]) and season_id = any($2::int[]);
+                SELECT avg(away_team_points) AS away_points,
+                       avg(home_team_points) AS home_points,
+                       count(*) AS total_games,
+                       avg(away_team_score) AS away_goals,
+                       avg(home_team_score) AS home_goals,
+                       avg(home_team_score) + avg(away_team_score) AS goals_per_game,
+                       count(id) FILTER (WHERE away_team_score > home_team_score) / cast(count(*) AS decimal) AS away_win,
+                       count(id) FILTER (WHERE away_team_score < home_team_score) / cast(count(*) AS decimal) AS home_win,
+                       count(id) FILTER (WHERE away_team_score = home_team_score) / cast(count(*) AS decimal) AS draw
+                from game where event_id = any($1::int[]) AND season_id = any($2::int[]);
             ''', event_ids, season_ids)
+
+
+    async def create_season_table(self) -> None:
+        async with self.client.conn_pool.acquire() as con:
+            return await con.execute('''
+                CREATE OR REPLACE FUNCTION season_table(events integer[], seasons integer[])
+                RETURNS TABLE(team VARCHAR,
+                              season_id int,
+                              points int,
+                              points_per_game float,
+                              score_per_game float,
+                              conceded_per_game float)
+                AS $$
+                    SELECT
+                        team, season_id, sum(points) AS points,
+                        sum(points) / sum(games) AS points_per_game,
+                        sum(score) / sum(games) AS score_per_game,
+                        sum(conceded) / sum(games) AS conceded_per_game FROM
+
+                    (SELECT away_team AS team, season_id, sum(away_team_points) AS points,
+                        sum(away_team_score) AS score, sum(home_team_score) AS conceded,
+                        count(*) AS games
+                        FROM game WHERE event_id = ANY(events)
+                        AND season_id = ANY(seasons)
+                        GROUP BY away_team, season_id
+
+                    UNION
+
+                    SELECT home_team AS team, season_id, sum(home_team_points) AS points,
+                        sum(home_team_score) AS score, sum(away_team_score) AS conceded,
+                        count(*) AS games
+                        FROM game WHERE event_id = ANY(events)
+                        AND season_id = ANY(seasons)
+                        GROUP BY home_team, season_id
+                    ) as query
+                    GROUP BY team, season_id
+
+                $$ LANGUAGE SQL STABLE;''',)
+
 
 class SeasonPgRepository:
     def __init__(self, pg_client: PgClient):
