@@ -8,15 +8,16 @@ from bson.objectid import ObjectId
 from .base import BaseModel
 from domain import FootballMatch, BaseMatch, Venue
 
+
 class MatchMongoRepository(metaclass=BaseModel):
     collection = "matches"
 
     @classmethod
     def search(cls, attr, value) -> FootballMatch:
-        if attr == '_id':
+        if attr == "_id":
             value = ObjectId(value)
 
-        items = cls.db_session.find({ attr: value })
+        items = cls.db_session.find({attr: value})
         return [FootballMatch(**i) for i in items]
 
     @classmethod
@@ -51,37 +52,52 @@ class MatchMongoRepository(metaclass=BaseModel):
         return {
             "$group": {
                 "_id": {"name": team_name, "season": "$season"},
-                "gfpg": { "$avg": team_score },
-                "gapg": { "$avg": opponent_score },
-                "xgfpg": { "$avg": team_xg },
-                "xgapg": { "$avg": opponent_xg },
-                "ppg": { "$avg": {
-                    "$switch": {
-                        "branches": [
-                            { "case": { "$gt": [team_score , opponent_score] }, "then": 3 },
-                            { "case": { "$eq": [team_score , opponent_score] }, "then": 1 },
-                            { "case": { "$lt": [team_score , opponent_score] }, "then": 0 }
-                        ],
-                        "default": 0
-                    }}
-                }
+                "gfpg": {"$avg": team_score},
+                "gapg": {"$avg": opponent_score},
+                "xgfpg": {"$avg": team_xg},
+                "xgapg": {"$avg": opponent_xg},
+                "ppg": {
+                    "$avg": {
+                        "$switch": {
+                            "branches": [
+                                {
+                                    "case": {"$gt": [team_score, opponent_score]},
+                                    "then": 3,
+                                },
+                                {
+                                    "case": {"$eq": [team_score, opponent_score]},
+                                    "then": 1,
+                                },
+                                {
+                                    "case": {"$lt": [team_score, opponent_score]},
+                                    "then": 0,
+                                },
+                            ],
+                            "default": 0,
+                        }
+                    }
+                },
             }
         }
 
     @classmethod
     def get_seasons_stats(
         cls, seasons: list[int], event: str, venue: Venue
-    )-> dict[str, object]:
+    ) -> dict[str, object]:
         """Performs aggregation to calculate season statistics per team."""
-        match = {"$match": {"$and": [{"event": {"$eq": event} }, {"season": {"$in": seasons}}]}}
+        match = {
+            "$match": {
+                "$and": [{"event": {"$eq": event}}, {"season": {"$in": seasons}}]
+            }
+        }
         group = cls._get_seasons_stats_group(venue)
         return cls.db_session.aggregate([match, group])
 
     @staticmethod
     def from_file(filepath, domain: BaseMatch):
-        """ Create list of matches from input file. """
+        """Create list of matches from input file."""
         matches = []
-        with open(filepath, 'r') as _file:
+        with open(filepath, "r") as _file:
             data = json.load(_file)
             for match in data:
                 try:
@@ -94,6 +110,5 @@ class MatchMongoRepository(metaclass=BaseModel):
     @classmethod
     def create_unique_index(cls):
         return cls.db_session.create_index(
-            [("date", 1), ("team1_name", 1), ("team2_name", 1)],
-            unique=True
+            [("date", 1), ("team1_name", 1), ("team2_name", 1)], unique=True
         )

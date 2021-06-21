@@ -3,15 +3,17 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
 
+
 class MatchType(Enum):
-    FOOTBALL = 'football'
-    CS_GO    = 'csgo'
-    DOTA2    = 'dota2'
+    FOOTBALL = "football"
+    CS_GO = "csgo"
+    DOTA2 = "dota2"
+
 
 class Venue(Enum):
-    TEAM1    = 'team1'
-    TEAM2    = 'team2'
-    NEUTRAL  = 'neutral'
+    TEAM1 = "team1"
+    TEAM2 = "team2"
+    NEUTRAL = "neutral"
 
 
 @dataclass

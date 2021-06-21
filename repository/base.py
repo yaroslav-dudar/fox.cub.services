@@ -12,6 +12,7 @@ from config import Config
 
 class Connection:
     SUPPORT_CONNECTIONS = (pymongo.MongoClient, asyncpg.pool.Pool)
+
     def __set_name__(self, owner, name):
         self.name = name
 
@@ -29,7 +30,8 @@ class Connection:
 
 
 class MongoClient:
-    """ Global MongoDB connector """
+    """Global MongoDB connector"""
+
     conn = Connection()
     db = None
     _obj = None
@@ -45,56 +47,56 @@ class MongoClient:
     def __init__(self, db_config: dict):
         auth_config = {}
         if db_config.get("authMechanism") == "SCRAM-SHA-1":
-            auth_config['authMechanism'] = db_config["authMechanism"]
-            auth_config['authSource'] = db_config["authSource"]
-            auth_config['username'] = db_config["username"]
-            auth_config['password'] = db_config["password"]
+            auth_config["authMechanism"] = db_config["authMechanism"]
+            auth_config["authSource"] = db_config["authSource"]
+            auth_config["username"] = db_config["username"]
+            auth_config["password"] = db_config["password"]
 
         self.conn = pymongo.MongoClient(
-            host=db_config['host'],
-            port=db_config['port'],
-            **auth_config
+            host=db_config["host"], port=db_config["port"], **auth_config
         )
-        MongoClient.db = self.conn[db_config['db_name']]
+        MongoClient.db = self.conn[db_config["db_name"]]
         # clean-up DB resources
         atexit.register(self.conn.close)
 
 
 class BaseModel(type):
     def __new__(cls, name, bases, attr):
-        attr['client'] = MongoClient(Config()['database'])
+        attr["client"] = MongoClient(Config()["database"])
 
         if attr.get("capped_settings"):
             cls.setup_capped_collection(attr)
 
-        session = attr['client'].db.get_collection(
-                attr["collection"],
-                codec_options=attr.get('codec_options'))
+        session = attr["client"].db.get_collection(
+            attr["collection"], codec_options=attr.get("codec_options")
+        )
 
-        attr['db_session'] = session
+        attr["db_session"] = session
 
         return super().__new__(cls, name, bases, attr)
-
 
     @classmethod
     def setup_capped_collection(cls, attr):
         settings = attr.get("capped_settings")
         try:
-            attr['client'].db.create_collection(attr["collection"],
-                                                capped=settings["capped"],
-                                                size=settings["size"],
-                                                max=settings["max"])
+            attr["client"].db.create_collection(
+                attr["collection"],
+                capped=settings["capped"],
+                size=settings["size"],
+                max=settings["max"],
+            )
         except pymongo.errors.CollectionInvalid as invalid_collection:
-            stats = attr['client'].db.command('collStats',
-                                              attr["collection"])
+            stats = attr["client"].db.command("collStats", attr["collection"])
             # verifing that collection is capped
-            if not stats.get('capped'):
-                raise RuntimeError('{} should be capped collection'.\
-                                   format(stats['ns'])) from invalid_collection
+            if not stats.get("capped"):
+                raise RuntimeError(
+                    "{} should be capped collection".format(stats["ns"])
+                ) from invalid_collection
 
 
 class PgClient:
-    """ Global PostgreSQL connector """
+    """Global PostgreSQL connector"""
+
     conn_pool = Connection()
     db = None
     _obj = None
@@ -117,13 +119,15 @@ class PgClient:
             return self.conn_pool
 
         self.conn_pool = await asyncpg.create_pool(
-            user=self.db_config['user'],
-            password=self.db_config['password'],
-            database=self.db_config['database'],
-            host=self.db_config['host'],
-            port=self.db_config['port'],
-            max_size=10, max_inactive_connection_lifetime=100,
-            loop=self.loop)
+            user=self.db_config["user"],
+            password=self.db_config["password"],
+            database=self.db_config["database"],
+            host=self.db_config["host"],
+            port=self.db_config["port"],
+            max_size=10,
+            max_inactive_connection_lifetime=100,
+            loop=self.loop,
+        )
 
         return self.conn_pool
 

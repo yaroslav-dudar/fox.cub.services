@@ -1,6 +1,7 @@
 import json
 import os
 
+
 class Config:
     settings = {}
     configpath = "config/config.json"

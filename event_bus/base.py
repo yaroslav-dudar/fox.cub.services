@@ -6,8 +6,10 @@ from typing import Any, Callable
 
 import abc
 
+
 class EventBus(metaclass=abc.ABCMeta):
     """Provides interface for EventBus classes only."""
+
     def register(self, event_type: Any, handler: Callable):
         """Registers handler for a given type of events.
 
