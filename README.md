@@ -1,4 +1,7 @@
 # fox.cub.services
+
+![Build Status](https://github.com/yaroslav-dudar/fox.cub.services/actions/workflows/run_ci.yaml/badge.svg)
+
 Small and self contained services associated to fox.cub stack
 
 # Requirements
