@@ -20,6 +20,6 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --show-source --statistics
-      - name: Typecheck with MyPy
+      - name: Apply type checking with MyPy
         run: |
           mypy .
