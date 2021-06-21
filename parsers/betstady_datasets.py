@@ -9,10 +9,10 @@ class BetStadyDataset:
         self.division = division
         self.seasons = seasons
 
-    def __iter__(self):
+    def __iter__(self) -> "BetStadyDataset":
         return self
 
-    def __next__(self):
+    def __next__(self) -> str:
         if self.current < len(self.seasons):
             url = self.get_url()
             self.current += 1
@@ -20,7 +20,7 @@ class BetStadyDataset:
 
         raise StopIteration
 
-    def get_url(self):
+    def get_url(self) -> str:
         return self.url_pattern.format(
             self.region, self.division, self.seasons[self.current]
         )
