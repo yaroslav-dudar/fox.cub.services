@@ -2,6 +2,7 @@
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
+from typing import Any, Optional, Union
 
 
 class MatchType(Enum):
@@ -37,42 +38,43 @@ class BaseMatch:
     team1_ft_score: int
     team2_ft_score: int
 
-    venue: Venue
+    venue: Union[Venue, str]
 
-    team1_id: str
-    team2_id: str
+    team1_id: Optional[str]
+    team2_id: Optional[str]
 
-    match_type: MatchType
-    event_id: int
-    season_id: int
+    match_type: str
+    event_id: str
+    season_id: str
 
 
 @dataclass
 class FootballMatch(BaseMatch):
     group: int
-    team1_ht_score: int
-    team2_ht_score: int
 
     team1_points: int
     team2_points: int
 
-    team1_goals_time: list = None
-    team2_goals_time: list = None
+    team1_goals_time: Optional[list] = None
+    team2_goals_time: Optional[list] = None
 
     team_1xg: float = field(default=0.0)
     team_2xg: float = field(default=0.0)
 
-    def __init__(self, **kwargs):
+    team1_ht_score: Optional[int] = None
+    team2_ht_score: Optional[int] = None
+
+    def __init__(self, **kwargs: dict[str, Any]):
         for attr, value in kwargs.items():
             self.__dict__[attr] = value
 
         self.match_type = MatchType.FOOTBALL.value
 
     def is_btts(self) -> bool:
-        return self.team1_ft_score and self.team2_ft_score
+        return bool(self.team1_ft_score and self.team2_ft_score)
 
     def is_home_win(self) -> bool:
-        return self.team1_ft_score and self.team2_ft_score
+        return bool(self.team1_ft_score and self.team2_ft_score)
 
     def is_over(self, total: float = 2.5) -> bool:
         return (self.team1_ft_score + self.team2_ft_score) > total

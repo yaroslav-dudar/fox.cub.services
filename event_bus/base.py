@@ -10,7 +10,7 @@ import abc
 class EventBus(metaclass=abc.ABCMeta):
     """Provides interface for EventBus classes only."""
 
-    def register(self, event_type: Any, handler: Callable):
+    def register(self, event_type: Any, handler: Callable) -> Any:
         """Registers handler for a given type of events.
 
         Args:
@@ -19,7 +19,7 @@ class EventBus(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError()
 
-    def publish_one(self, event: Any):
+    def publish_one(self, event: Any) -> Any:
         """Trigger the handler(s) previously registered for this event.
 
         Args:
@@ -27,7 +27,7 @@ class EventBus(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError()
 
-    def publish_batch(self, event_type: Any, events: list):
+    def publish_batch(self, event_type: Any, events: list) -> Any:
         """Trigger the handler(s) for provided event type only.
 
         Args:

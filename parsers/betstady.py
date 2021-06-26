@@ -2,6 +2,7 @@
 from dataclasses import field
 import logging
 from datetime import datetime
+from typing import Generator
 
 import scrapy
 import scrapy.selector
@@ -14,7 +15,9 @@ import parsers.betstady_datasets as betstady_datasets
 class MatchPipeline:
     """Pipeline that finalize item with internal data."""
 
-    async def process_item(self, item: FootballMatch, spider: "BetStadySpider"):
+    async def process_item(
+        self, item: FootballMatch, spider: "BetStadySpider"
+    ) -> FootballMatch:
         season = await spider.season_repo.insert(item.season_id)
         event = await spider.event_repo.insert(item.event_id)
         item.season_id, item.event_id = season.get("id"), event.get("id")
@@ -53,7 +56,7 @@ class BetStadySpider(scrapy.Spider):
         self.season_repo = repository.SeasonPgRepository(pg_client)
         self.event_repo = repository.EventPgRepository(pg_client)
 
-    def start_requests(self):
+    def start_requests(self) -> Generator[scrapy.Request, None, None]:
         for url in self.dataset:
             yield scrapy.Request(
                 url=url, callback=self.parse_table, meta={"proxy": self.proxy}
@@ -78,7 +81,9 @@ class BetStadySpider(scrapy.Spider):
         scoreline = scoreline.replace(" ", "").split("-") if scoreline else (None, None)
         return int(scoreline[0]), int(scoreline[1])
 
-    def parse_table(self, response):
+    def parse_table(
+        self, response: scrapy.http.Response
+    ) -> Generator[FootballMatch, None, None]:
         games = response.css("table.schedule-table tr")
         season = self.get_season_year(response.request.url)
         for game in games:

@@ -3,6 +3,7 @@
 
 import atexit
 import asyncio
+from typing import Any, ClassVar, Type, Union
 
 import pymongo
 import asyncpg
@@ -13,16 +14,20 @@ from config import Config
 class Connection:
     SUPPORT_CONNECTIONS = (pymongo.MongoClient, asyncpg.pool.Pool)
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, owner: Any, name: str) -> None:
         self.name = name
 
-    def __set__(self, instance, value):
+    def __set__(
+        self, instance: Any, value: Union[pymongo.MongoClient, asyncpg.pool.Pool]
+    ) -> None:
         if not isinstance(value, self.SUPPORT_CONNECTIONS):
             raise ValueError(f"Connection: {value.__class__} is not supported.")
 
         instance.__dict__[self.name] = value
 
-    def __get__(self, instance, owner):
+    def __get__(
+        self, instance: Any, owner: Any
+    ) -> Union[pymongo.MongoClient, asyncpg.pool.Pool]:
         if not instance:
             return None
 
@@ -36,7 +41,7 @@ class MongoClient:
     db = None
     _obj = None
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: list[Any], **kwargs: dict[str, Any]) -> "MongoClient":
         if cls._obj:
             # prevent to create multiple db connections
             return cls._obj
@@ -61,7 +66,12 @@ class MongoClient:
 
 
 class BaseModel(type):
-    def __new__(cls, name, bases, attr):
+
+    db_session: ClassVar[pymongo.collection.Collection]
+
+    def __new__(
+        cls: Type["BaseModel"], name: str, bases: tuple[type, ...], attr: dict[str, Any]
+    ) -> "BaseModel":
         attr["client"] = MongoClient(Config()["database"])
 
         if attr.get("capped_settings"):
@@ -76,8 +86,8 @@ class BaseModel(type):
         return super().__new__(cls, name, bases, attr)
 
     @classmethod
-    def setup_capped_collection(cls, attr):
-        settings = attr.get("capped_settings")
+    def setup_capped_collection(cls, attr: dict[str, Any]) -> None:
+        settings = attr.get("capped_settings", {})
         try:
             attr["client"].db.create_collection(
                 attr["collection"],
@@ -101,7 +111,7 @@ class PgClient:
     db = None
     _obj = None
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: list[Any], **kwargs: dict[str, Any]) -> "PgClient":
         if cls._obj:
             # prevent to create multiple db connections
             return cls._obj
@@ -114,7 +124,7 @@ class PgClient:
         self.loop = loop
         atexit.register(self.shutdown)
 
-    async def init_connection(self):
+    async def init_connection(self) -> asyncpg.Pool:
         if self.conn_pool:
             return self.conn_pool
 
@@ -131,6 +141,6 @@ class PgClient:
 
         return self.conn_pool
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Cleanup DB resources before exit."""
         self.loop.run_until_complete(self.conn_pool.close())

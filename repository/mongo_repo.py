@@ -1,6 +1,7 @@
 """Pymongo repository for match entity."""
 import json
 import logging
+from typing import Any, Optional, Type
 
 import pymongo.errors
 from bson.objectid import ObjectId
@@ -13,7 +14,7 @@ class MatchMongoRepository(metaclass=BaseModel):
     collection = "matches"
 
     @classmethod
-    def search(cls, attr, value) -> FootballMatch:
+    def search(cls, attr: str, value: Any) -> list[FootballMatch]:
         if attr == "_id":
             value = ObjectId(value)
 
@@ -21,23 +22,24 @@ class MatchMongoRepository(metaclass=BaseModel):
         return [FootballMatch(**i) for i in items]
 
     @classmethod
-    def insert(cls, m: FootballMatch):
+    def insert(cls, m: FootballMatch) -> Optional[dict[str, Any]]:
         try:
             return cls.db_session.insert_one(m.as_dict())
         except pymongo.errors.DuplicateKeyError:
             logging.warn("Insert is canceled. Duplicated record.")
+            return None
 
     @classmethod
-    def insert_many(cls, matches: list[FootballMatch]):
+    def insert_many(cls, matches: list[FootballMatch]) -> dict[str, Any]:
         to_insert = [m.as_dict() for m in matches]
         return cls.db_session.insert_many(to_insert, ordered=False)
 
     @classmethod
-    def delete(cls, _id: int):
+    def delete(cls, _id: int) -> dict[str, Any]:
         return cls.db_session.remove({"_id": ObjectId(_id)})
 
     @classmethod
-    def _get_seasons_stats_group(cls, venue: Venue):
+    def _get_seasons_stats_group(cls, venue: Venue) -> dict[str, Any]:
         if venue == Venue.TEAM1:
             team_name = "$team1_name"
             team_score, opponent_score = "$team1_ft_score", "$team2_ft_score"
@@ -94,7 +96,7 @@ class MatchMongoRepository(metaclass=BaseModel):
         return cls.db_session.aggregate([match, group])
 
     @staticmethod
-    def from_file(filepath, domain: BaseMatch):
+    def from_file(filepath: str, domain: Type[BaseMatch]) -> list[BaseMatch]:
         """Create list of matches from input file."""
         matches = []
         with open(filepath, "r") as _file:
@@ -108,7 +110,7 @@ class MatchMongoRepository(metaclass=BaseModel):
         return matches
 
     @classmethod
-    def create_unique_index(cls):
+    def create_unique_index(cls) -> list[Any]:
         return cls.db_session.create_index(
             [("date", 1), ("team1_name", 1), ("team2_name", 1)], unique=True
         )

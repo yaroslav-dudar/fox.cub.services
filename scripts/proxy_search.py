@@ -6,8 +6,11 @@ SOURCE = (
 )
 
 
-async def testProxy(proxy_addr):
-    proxies = {"all://": f"http://{proxy_addr}"}
+async def testProxy(proxy_addr: str) -> None:
+    proxies = httpx.Proxy(
+        url=f"http://{proxy_addr}",
+        mode="TUNNEL_ONLY",
+    )
 
     async with httpx.AsyncClient(proxies=proxies) as client:
         try:
@@ -22,7 +25,7 @@ proxy_list = httpx.get(SOURCE).text
 tasks = [testProxy(ip) for ip in proxy_list.splitlines()[:100]]
 
 
-async def main():
+async def main() -> None:
     await asyncio.gather(*tasks)
 
 

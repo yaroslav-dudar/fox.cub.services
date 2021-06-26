@@ -1,6 +1,6 @@
 """PostgreSQL to Python mapper with asyncio support."""
 
-from typing import Optional
+from typing import Any, Optional
 import asyncpg
 
 from domain import FootballMatch
@@ -11,7 +11,7 @@ class MatchPgRepository:
     def __init__(self, pg_client: PgClient):
         self.client = pg_client
 
-    async def insert_many(self, matches: list[FootballMatch]):
+    async def insert_many(self, matches: list[FootballMatch]) -> None:
         if not matches:
             return
 
@@ -130,7 +130,7 @@ class MatchPgRepository:
         season_ids: Optional[list[int]] = None,
         home_teams: Optional[list[str]] = None,
         away_teams: Optional[list[str]] = None,
-    ):
+    ) -> list[asyncpg.Record]:
         async with self.client.conn_pool.acquire() as con:
             base_query = """SELECT avg(away_team_points) AS away_points,
                        avg(home_team_points) AS home_points,
@@ -148,7 +148,7 @@ class MatchPgRepository:
                        count(id) FILTER (WHERE away_team_score = home_team_score) / cast(count(*) AS decimal) AS draw
                 from game where {0} AND {1} AND {2} AND {3};"""
 
-            args = []
+            args: list[Any] = []
             if event_ids:
                 args.append(event_ids)
                 event_where = f"event_id = ANY(${len(args)}::int[])"
@@ -259,7 +259,7 @@ class SeasonPgRepository:
     def __init__(self, pg_client: PgClient):
         self.client = pg_client
 
-    async def insert(self, season_name: str):
+    async def insert(self, season_name: str) -> asyncpg.Record:
         async with self.client.conn_pool.acquire() as con:
             return await con.fetchrow(
                 """
@@ -274,7 +274,7 @@ class EventPgRepository:
     def __init__(self, pg_client: PgClient):
         self.client = pg_client
 
-    async def insert(self, ev_name: str):
+    async def insert(self, ev_name: str) -> asyncpg.Record:
         async with self.client.conn_pool.acquire() as con:
             return await con.fetchrow(
                 """

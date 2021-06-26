@@ -12,13 +12,13 @@ class MemoryEventBus(EventBus):
 
     def __init__(self) -> None:
         super().__init__()
-        self.handlers = defaultdict(list)
+        self.handlers: dict[str, list[Callable]] = defaultdict(list)
 
-    def register(self, event_type: Any, handler: Callable):
+    def register(self, event_type: Any, handler: Callable) -> None:
         """Registers handler for a particular event type."""
         self.handlers[event_type].append(handler)
 
-    async def publish_one_async(self, event: Any):
+    async def publish_one_async(self, event: Any) -> None:
         """Sends single event to all registered handlers."""
         for h in self.handlers[event.__class__]:
             if inspect.iscoroutinefunction(h):
@@ -26,7 +26,7 @@ class MemoryEventBus(EventBus):
             else:
                 h(event)
 
-    async def publish_batch_async(self, event_type: Any, events: list):
+    async def publish_batch_async(self, event_type: Any, events: list) -> None:
         """Sends batch of events to all registered handlers."""
         for h in self.handlers[event_type]:
             if inspect.iscoroutinefunction(h):
