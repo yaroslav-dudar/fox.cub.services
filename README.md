@@ -12,6 +12,6 @@ Small and self contained services associated to fox.cub stack
 
 ## Examples usage:
 
-`PYTHONPATH=./ PYTHONASYNCIODEBUG=1 python examples/fetch_save_match.py`
+`PYTHONPATH=./ PYTHONASYNCIODEBUG=1 python examples/save_matches.py`
 
 `PYTHONPATH=./ PYTHONASYNCIODEBUG=1 python examples/pg_repo_cli.py`

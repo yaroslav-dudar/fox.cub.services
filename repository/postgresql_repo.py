@@ -5,6 +5,7 @@ import asyncpg
 
 from domain import FootballMatch
 from .base import PgClient
+from helpers.utils import MetricRecord
 
 
 class MatchPgRepository:
@@ -55,8 +56,7 @@ class MatchPgRepository:
         self,
         event_ids: list[int],
         season_ids: list[int],
-        min_points: float,
-        max_points: float,
+        points: MetricRecord,
     ) -> list[asyncpg.Record]:
         """
         Finds teams withing given points per game range.
@@ -68,8 +68,8 @@ class MatchPgRepository:
                 FROM multi_season_table($3, $4)
                 WHERE points_per_game <= $2 AND points_per_game >= $1;
             """,
-                min_points,
-                max_points,
+                points.min_value,
+                points.max_value,
                 event_ids,
                 season_ids,
             )
@@ -78,10 +78,8 @@ class MatchPgRepository:
         self,
         event_ids: list[int],
         season_ids: list[int],
-        min_score: float,
-        max_score: float,
-        min_conceded: float,
-        max_conceded: float,
+        score: MetricRecord,
+        conceded: MetricRecord,
     ) -> list[asyncpg.Record]:
         async with self.client.conn_pool.acquire() as con:
             return await con.fetch(
@@ -93,18 +91,14 @@ class MatchPgRepository:
             """,
                 event_ids,
                 season_ids,
-                min_score,
-                max_score,
-                min_conceded,
-                max_conceded,
+                score.min_value,
+                score.max_value,
+                conceded.min_value,
+                conceded.max_value,
             )
 
     async def get_by_league_pos(
-        self,
-        min_pos: float,
-        max_pos: float,
-        event_ids: list[int],
-        season_ids: list[int],
+        self, event_ids: list[int], season_ids: list[int], position: MetricRecord
     ) -> list[asyncpg.Record]:
         async with self.client.conn_pool.acquire() as con:
             return await con.fetch(
@@ -120,8 +114,8 @@ class MatchPgRepository:
             """,
                 event_ids,
                 season_ids,
-                min_pos,
-                max_pos,
+                position.min_value,
+                position.max_value,
             )
 
     async def get_stats(
@@ -269,6 +263,15 @@ class SeasonPgRepository:
                 season_name,
             )
 
+    async def get(self, names: list[str]) -> list[asyncpg.Record]:
+        async with self.client.conn_pool.acquire() as con:
+            return await con.fetch(
+                """
+                SELECT id, name FROM season WHERE name = ANY($1)
+            """,
+                names,
+            )
+
 
 class EventPgRepository:
     def __init__(self, pg_client: PgClient):
@@ -282,4 +285,13 @@ class EventPgRepository:
                 ON CONFLICT(name) DO UPDATE SET name = $1 RETURNING id;
             """,
                 ev_name,
+            )
+
+    async def get(self, names: list[str]) -> list[asyncpg.Record]:
+        async with self.client.conn_pool.acquire() as con:
+            return await con.fetch(
+                """
+                SELECT id, name FROM event WHERE name = ANY($1)
+            """,
+                names,
             )
